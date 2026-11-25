@@ -1,0 +1,142 @@
+{
+  "people": [
+    {
+      "id": "PE-1",
+      "name": "沈安",
+      "delegation": "DG-A"
+    },
+    {
+      "id": "PE-2",
+      "name": "沈安",
+      "delegation": "DG-B"
+    },
+    {
+      "id": "PE-3",
+      "name": "苏川",
+      "delegation": "DG-A"
+    }
+  ],
+  "zones": [
+    {
+      "id": "Z-ICE",
+      "capacity": 6,
+      "training": "ice-safety"
+    },
+    {
+      "id": "Z-MEDIA",
+      "capacity": 10,
+      "training": null
+    }
+  ],
+  "sessions": [
+    {
+      "id": "SS-1",
+      "start": "2026-11-28T00:00:00Z",
+      "end": "2026-11-28T06:00:00Z"
+    }
+  ],
+  "duties": [
+    {
+      "id": "DUTY-1",
+      "zone": "Z-ICE",
+      "session": "SS-1",
+      "role": "equipment",
+      "minimum": 1
+    }
+  ],
+  "training": [
+    {
+      "id": "TRAIN-1",
+      "person": "PE-1",
+      "kind": "ice-safety",
+      "until": "2026-12-01"
+    },
+    {
+      "id": "TRAIN-2",
+      "person": "PE-3",
+      "kind": "ice-safety",
+      "until": "2026-12-01"
+    }
+  ],
+  "gates": [
+    {
+      "id": "GATE-A",
+      "zone": "Z-ICE"
+    },
+    {
+      "id": "GATE-B",
+      "zone": "Z-ICE"
+    }
+  ],
+  "protocol": {
+    "offlineWindowSeconds": 120,
+    "clockToleranceSeconds": 30
+  },
+  "actors": [
+    {
+      "id": "delegation-a",
+      "role": "delegation",
+      "delegation": "DG-A"
+    },
+    {
+      "id": "credential",
+      "role": "credential"
+    },
+    {
+      "id": "zone-chief",
+      "role": "zonechief",
+      "zone": "Z-ICE"
+    },
+    {
+      "id": "operations",
+      "role": "operations"
+    }
+  ],
+  "delegations": [
+    {
+      "id": "DG-A"
+    },
+    {
+      "id": "DG-B"
+    }
+  ],
+  "sourceChanges": [
+    {
+      "id": "REPLACE-BADGE",
+      "person": "PE-1",
+      "oldGeneration": 1,
+      "newGeneration": 2,
+      "reason": "挂失"
+    },
+    {
+      "id": "DUTY-HANDOVER",
+      "duty": "DUTY-1",
+      "outgoing": "PE-1",
+      "incoming": "PE-3"
+    },
+    {
+      "id": "GATE-OLD",
+      "gate": "GATE-A",
+      "sequence": 1,
+      "person": "PE-1",
+      "badgeGeneration": 1,
+      "event": "enter",
+      "at": "2026-11-28T00:01:00Z"
+    },
+    {
+      "id": "GATE-NEW",
+      "gate": "GATE-B",
+      "sequence": 1,
+      "person": "PE-1",
+      "badgeGeneration": 2,
+      "event": "enter",
+      "at": "2026-11-28T00:02:00Z"
+    },
+    {
+      "id": "TRAIN-REVIEW",
+      "training": "TRAIN-2",
+      "reviewer": "credential",
+      "decision": "allow"
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+[
+  {
+    "table": "people",
+    "field": "delegation",
+    "target": "delegations",
+    "nullable": false
+  },
+  {
+    "table": "duties",
+    "field": "zone",
+    "target": "zones",
+    "nullable": false
+  },
+  {
+    "table": "duties",
+    "field": "session",
+    "target": "sessions",
+    "nullable": false
+  },
+  {
+    "table": "training",
+    "field": "person",
+    "target": "people",
+    "nullable": false
+  },
+  {
+    "table": "gates",
+    "field": "zone",
+    "target": "zones",
+    "nullable": false
+  }
+]

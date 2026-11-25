@@ -1,0 +1,14 @@
+{
+  "name": "本地闸机同步方",
+  "path": "/gate/syncs",
+  "lookup": "/gate/syncs/",
+  "id": "syncRequest",
+  "group": "permits",
+  "key": "Sync-Nonce",
+  "modes": [
+    "accepted",
+    "rejected",
+    "accepted_disconnect",
+    "pending"
+  ]
+}
