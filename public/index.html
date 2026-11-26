@@ -1,0 +1,463 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>赛事工作证 · 岗位准入与闸机同步核对台</title>
+<style>
+  :root { --line:#d8dee9; --bg:#f4f6fa; --card:#fff; --ink:#1f2937; --muted:#6b7280;
+          --ok:#0f7b3e; --warn:#b45309; --bad:#b91c1c; --info:#1d4ed8; --accent:#0f4c81; }
+  * { box-sizing: border-box; }
+  body { margin:0; font:14px/1.55 -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif; background:var(--bg); color:var(--ink); }
+  header { background:var(--accent); color:#fff; padding:14px 22px; display:flex; flex-wrap:wrap; gap:12px; align-items:center; }
+  header h1 { font-size:18px; margin:0; }
+  header .sp { flex:1; }
+  header select,header input { padding:5px 8px; border-radius:6px; border:0; }
+  nav { display:flex; gap:6px; padding:10px 18px 0; flex-wrap:wrap; }
+  nav button { border:1px solid var(--line); background:#fff; padding:7px 14px; border-radius:8px 8px 0 0; cursor:pointer; }
+  nav button.active { background:var(--card); border-bottom-color:#fff; font-weight:700; color:var(--accent); }
+  main { padding:0 18px 28px; }
+  .tab { display:none; background:var(--card); border:1px solid var(--line); border-radius:0 10px 10px 10px; padding:16px 18px; }
+  .tab.active { display:block; }
+  .row { display:flex; gap:10px; flex-wrap:wrap; align-items:end; margin-bottom:12px; }
+  label.f { display:flex; flex-direction:column; gap:4px; font-size:12px; color:var(--muted); }
+  input,select,textarea { padding:7px 9px; border:1px solid var(--line); border-radius:7px; font:inherit; }
+  button.act { background:var(--accent); color:#fff; border:0; border-radius:7px; padding:8px 14px; cursor:pointer; }
+  button.ghost { background:#eef2f8; color:var(--accent); border:1px solid var(--line); border-radius:7px; padding:7px 12px; cursor:pointer; }
+  button.danger { background:var(--bad); color:#fff; border:0; border-radius:6px; padding:4px 10px; cursor:pointer; }
+  button.ok { background:var(--ok); color:#fff; border:0; border-radius:6px; padding:4px 10px; cursor:pointer; }
+  table { border-collapse:collapse; width:100%; margin:8px 0 14px; font-size:13px; }
+  th,td { border:1px solid var(--line); padding:6px 9px; text-align:left; vertical-align:top; }
+  th { background:#eef2f8; }
+  .pill { display:inline-block; padding:1px 8px; border-radius:999px; font-size:12px; margin:1px 3px 1px 0; }
+  .pill.ok { background:#dcfce7; color:var(--ok); }
+  .pill.bad { background:#fee2e2; color:var(--bad); }
+  .pill.warn { background:#fef3c7; color:var(--warn); }
+  .pill.info { background:#dbeafe; color:var(--info); }
+  .summary { background:#f0f7ff; border-left:4px solid var(--info); padding:9px 12px; border-radius:6px; margin:8px 0 14px; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  pre.json { background:#0f172a; color:#d7e3f4; padding:12px; border-radius:8px; overflow:auto; max-height:420px; font-size:12px; }
+  .muted { color:var(--muted); }
+  .cards { display:flex; gap:12px; flex-wrap:wrap; margin:6px 0 14px; }
+  .card { border:1px solid var(--line); border-radius:10px; padding:10px 14px; min-width:150px; background:#fbfdff; }
+  .card .n { font-size:24px; font-weight:800; }
+  .card .l { color:var(--muted); font-size:12px; }
+  .n.good{color:var(--ok)} .n.warn{color:var(--warn)} .n.bad{color:var(--bad)}
+  nav button[data-tab="ops"] { }
+  .form-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:14px; }
+  .form-card { border:1px solid var(--line); border-radius:10px; padding:12px 14px; background:#fbfdff; }
+  .form-card h3 { margin:0 0 8px; font-size:14px; color:var(--accent); }
+  .form-card .f { margin-bottom:7px; }
+  .form-card input,.form-card select { width:100%; }
+  .form-card .row2 { display:flex; gap:8px; }
+  .form-card .row2 .f { flex:1; }
+  @media (max-width: 900px){ .grid2{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+<header>
+  <h1>赛事工作证 · 现场核对台</h1>
+  <span class="muted" style="color:#cfe0f5">合成证件 / 本地协议 · “许可”与“实际到场”分开显示</span>
+  <span class="sp"></span>
+  <label style="font-size:12px">操作人
+    <select id="actor">
+      <option value="operations">operations（组委会运营）</option>
+      <option value="credential">credential（证件中心）</option>
+      <option value="zone-chief">zone-chief（Z-ICE 区域负责人）</option>
+      <option value="delegation-a">delegation-a（A 团，仅申报）</option>
+    </select>
+  </label>
+</header>
+
+<nav>
+  <button data-tab="person" class="active">按人：许可 / 到场 / 争议</button>
+  <button data-tab="session">按场次：岗位齐备</button>
+  <button data-tab="zone">按区域：人数 / 谁需离场</button>
+  <button data-tab="gate">按闸机：同步 / 撤销覆盖</button>
+  <button data-tab="verify">待核实与争议</button>
+  <button data-tab="ops">业务操作</button>
+  <button data-tab="api">通用接口调用</button>
+</nav>
+
+<main>
+  <section id="tab-person" class="tab active">
+    <div class="row">
+      <label class="f">人员 ID<input id="p-id" value="PE-1" /></label>
+      <label class="f">核对时刻 at（可空=投影最新）<input id="p-at" value="2026-11-28T00:04:00Z" size="26" /></label>
+      <button class="act" onclick="loadPerson()">查询有效权限与位置</button>
+    </div>
+    <div id="p-out"></div>
+  </section>
+
+  <section id="tab-session" class="tab">
+    <div class="row">
+      <label class="f">场次 ID<input id="s-id" value="SS-1" /></label>
+      <label class="f">时刻 at<input id="s-at" value="2026-11-28T00:02:00Z" size="26" /></label>
+      <button class="act" onclick="loadStaffing()">查岗位是否齐备</button>
+      <button class="ghost" onclick="releaseSession()">放行该场次/下一场</button>
+    </div>
+    <div id="s-out"></div>
+  </section>
+
+  <section id="tab-zone" class="tab">
+    <div class="row">
+      <label class="f">区域 ID<input id="z-id" value="Z-ICE" /></label>
+      <label class="f">场次<input id="z-session" value="SS-1" /></label>
+      <label class="f">时刻 at<input id="z-at" value="2026-11-28T00:03:00Z" size="24" /></label>
+      <button class="act" onclick="loadZone()">查实际人数与离场名单</button>
+    </div>
+    <div id="z-out"></div>
+  </section>
+
+  <section id="tab-gate" class="tab">
+    <div class="row">
+      <label class="f">闸机 ID<input id="g-id" value="GATE-A" /></label>
+      <label class="f">时刻 at<input id="g-at" value="2026-11-28T00:01:10Z" size="26" /></label>
+      <button class="act" onclick="loadGate()">查该闸机覆盖</button>
+      <button class="ghost" onclick="syncGate()">生成同步快照</button>
+      <button class="ghost" onclick="setMode('offline')">标记离线</button>
+      <button class="ghost" onclick="setMode('online')">标记在线</button>
+      <label class="f">同步额度（可空）<input id="g-quota" size="6" placeholder="2" /></label>
+    </div>
+    <div id="g-out"></div>
+    <h3>全部闸机 × 撤销覆盖矩阵</h3>
+    <button class="ghost" onclick="loadMatrix()">刷新覆盖矩阵</button>
+    <div id="g-matrix"></div>
+  </section>
+
+  <section id="tab-verify" class="tab">
+    <div class="row"><button class="act" onclick="loadVerify()">刷新待核实事件与位置争议</button></div>
+    <div class="grid2">
+      <div><h3>待核实事件（时钟误差等）</h3><div id="v-events"></div></div>
+      <div><h3>位置 / 流水争议</h3><div id="v-disputes"></div></div>
+    </div>
+  </section>
+
+  <section id="tab-ops" class="tab">
+    <p class="muted">所有操作自动带右上角选择的 <code>X-Actor</code>。时间可留空（取服务端当前时间）；剧本核对时间使用 2026-11-28T…。</p>
+    <div class="form-grid">
+      <div class="form-card">
+        <h3>① 代表团 / 志愿者 / 媒体申报</h3>
+        <label class="f">已有人员 ID（留空则按姓名新建独立身份）<input id="o-decl-person" placeholder="PE-? 或留空" /></label>
+        <div class="row2">
+          <label class="f">新人员姓名<input id="o-decl-name" placeholder="例如：沈安" /></label>
+          <label class="f">所属团<input id="o-decl-delegation" value="DG-A" /></label>
+        </div>
+        <label class="f">申请类别
+          <select id="o-decl-cat"><option value="delegation">delegation 代表团成员</option><option value="volunteer">volunteer 志愿者</option><option value="media">media 媒体</option></select>
+        </label>
+        <button class="act" onclick="opsDeclaration()">提交申报</button>
+      </div>
+
+      <div class="form-card">
+        <h3>② 身份确认 / 培训核准</h3>
+        <label class="f">人员 ID<input id="o-id-person" value="PE-1" /></label>
+        <button class="ok" onclick="opsConfirmIdentity()">确认身份（credential/operations）</button>
+        <hr style="border:0;border-top:1px solid var(--line);margin:10px 0" />
+        <div class="row2">
+          <label class="f">培训记录 ID<input id="o-train-id" value="TRAIN-1" /></label>
+          <label class="f">决定<select id="o-train-decision"><option value="allow">allow 核准</option><option value="deny">deny 不核准</option></select></label>
+        </div>
+        <button class="act" onclick="opsReviewTraining()">核准培训资格</button>
+      </div>
+
+      <div class="form-card">
+        <h3>③ 岗位指派 + 核准</h3>
+        <div class="row2">
+          <label class="f">人员<input id="o-asg-person" value="PE-1" /></label>
+          <label class="f">岗位要求<input id="o-asg-duty" value="DUTY-1" /></label>
+        </div>
+        <label class="f">角色（须与岗位要求一致）<input id="o-asg-role" value="equipment" /></label>
+        <button class="act" onclick="opsAssignment()">指派并以当前操作人核准</button>
+        <p class="muted" style="margin-bottom:0">用 delegation-a 核准则会被拒绝，体现职责分离。</p>
+      </div>
+
+      <div class="form-card">
+        <h3>④ 替班（资格 + 到岗后才完成）</h3>
+        <div class="row2">
+          <label class="f">岗位要求<input id="o-rep-duty" value="DUTY-1" /></label>
+        </div>
+        <div class="row2">
+          <label class="f">出班人<input id="o-rep-out" value="PE-1" /></label>
+          <label class="f">接班人<input id="o-rep-in" value="PE-3" /></label>
+        </div>
+        <label class="f">时刻 at（留空=当前时间；演示数据用 2026-11-28T00:05:00Z）<input id="o-rep-at" value="2026-11-28T00:05:00Z" /></label>
+        <button class="act" onclick="opsReplace()">建单并在满足条件时完成</button>
+      </div>
+
+      <div class="form-card">
+        <h3>⑤ 发证 / 补发换代 / 挂失撤销</h3>
+        <label class="f">人员 ID<input id="o-badge-person" value="PE-1" /></label>
+        <label class="f">操作
+          <select id="o-badge-action">
+            <option value="issue">issue 首次发证（第 1 代）</option>
+            <option value="reissue" selected>reissue 挂失/换证（旧代失效）</option>
+            <option value="revoke">revoke 仅撤销/挂失</option>
+          </select>
+        </label>
+        <label class="f">原因<input id="o-badge-reason" value="挂失" /></label>
+        <button class="act" onclick="opsBadge()">执行证件操作</button>
+      </div>
+
+      <div class="form-card">
+        <h3>⑥ 闸机事件接收</h3>
+        <div class="row2">
+          <label class="f">闸机<input id="o-ev-gate" value="GATE-A" /></label>
+          <label class="f">闸机序号 sequence<input id="o-ev-seq" value="501" /></label>
+        </div>
+        <div class="row2">
+          <label class="f">人员<input id="o-ev-person" value="PE-1" /></label>
+          <label class="f">证件代次<input id="o-ev-gen" value="1" /></label>
+        </div>
+        <div class="row2">
+          <label class="f">类型<select id="o-ev-type"><option value="enter">enter 入场</option><option value="exit">exit 出场</option></select></label>
+          <label class="f">模式<select id="o-ev-offline"><option value="false">online 在线</option><option value="true">offline 离线补传</option></select></label>
+        </div>
+        <label class="f">事件时间 at<input id="o-ev-at" value="2026-11-28T00:01:00Z" /></label>
+        <label class="f">接收时间 receivedAt（偏差&gt;30s 进待核实）<input id="o-ev-recv" value="2026-11-28T00:01:05Z" /></label>
+        <button class="act" onclick="opsEvent()">接收事件</button>
+      </div>
+    </div>
+    <h3>操作结果</h3>
+    <pre class="json" id="ops-out">尚未执行业务操作。</pre>
+  </section>
+
+  <section id="tab-api" class="tab">
+    <p class="muted">通用 JSON 调用器，会自动带上当前选择的 <code>X-Actor</code>。接口清单见 <code>GET /</code> 或 docs/api.md。</p>
+    <div class="row">
+      <label class="f">方法<select id="a-method"><option>POST</option><option>GET</option><option>PUT</option></select></label>
+      <label class="f" style="flex:1">路径<input id="a-path" value="/api/events" /></label>
+      <button class="act" onclick="callApi()">发送</button>
+    </div>
+    <textarea id="a-body" rows="8" style="width:100%">{"gate":"GATE-A","sequence":9001,"person":"PE-1","badgeGeneration":1,"event":"enter","at":"2026-11-28T00:01:00Z","receivedAt":"2026-11-28T00:01:05Z"}</textarea>
+    <h3>响应</h3>
+    <pre class="json" id="a-out">尚未调用</pre>
+  </section>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const actor = () => $('actor').value;
+function pills(list, okMap) {
+  return (list||[]).map(x => `<span class="pill ${okMap && okMap(x) ? 'ok':'bad'}">${x}</span>`).join('') || '<span class="muted">无</span>';
+}
+function esc(s){ return String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+async function api(path, opts = {}) {
+  const res = await fetch(path, {
+    method: opts.method || (opts.body ? 'POST' : 'GET'),
+    headers: { 'Content-Type':'application/json', 'X-Actor': actor() },
+    body: opts.body ? JSON.stringify(opts.body) : undefined,
+  });
+  const text = await res.text();
+  let json; try { json = JSON.parse(text); } catch { json = text; }
+  return { status: res.status, json };
+}
+function qs(id){ const v=$(id).value.trim(); return v ? `&at=${encodeURIComponent(v)}` : ''; }
+
+document.querySelectorAll('nav button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');
+  $('tab-'+b.dataset.tab).classList.add('active');
+  if (b.dataset.tab==='verify') loadVerify();
+  if (b.dataset.tab==='gate') loadMatrix();
+});
+
+async function loadPerson() {
+  const id = $('p-id').value.trim(); const at = $('p-at').value.trim();
+  const q = at ? `?at=${encodeURIComponent(at)}` : '';
+  const { status, json:d } = await api(`/api/people/${encodeURIComponent(id)}/status${q}`);
+  if (status >= 400) { $('p-out').innerHTML = `<pre class="json">${esc(JSON.stringify(d,null,2))}</pre>`; return; }
+  const duty = await api(`/api/people/${encodeURIComponent(id)}/duty?date=2026-11-28`);
+  const accessRows = d.effectiveAccess.map(a => `<tr>
+      <td>${a.zone}</td><td>${a.session}</td>
+      <td>${a.permitted ? '<span class="pill ok">具备许可依据</span>' : '<span class="pill bad">不具备</span>'}<br>${pills(a.reasons)}</td>
+      <td>当前第 ${a.currentBadgeGeneration ?? '—'} 代 / 此时有效：${a.currentGenerationValidAtTime ? '是':'否'}</td>
+      <td>${a.canEnterAtTime ? '<span class="pill ok">此时可入场</span>' : '<span class="pill warn">不可入场</span>'}</td>
+    </tr>`).join('');
+  const evRows = d.events.slice(0,12).map(e => `<tr>
+      <td>${esc(e.at)}</td><td>${e.gate}#${e.sequence}</td><td>${e.type}</td><td>G${e.badgeGeneration}</td>
+      <td><span class="pill ${e.status==='applied'?'ok':e.status==='pending'?'warn':e.status==='denied'?'bad':''}">${e.status}</span></td>
+      <td>${pills(e.flags)}</td></tr>`).join('');
+  $('p-out').innerHTML = `
+    <div class="summary">${esc(d.summaryZh)}</div>
+    <div class="summary" style="border-left-color:${duty.json.canDuty?'var(--ok)':'var(--warn)'};background:${duty.json.canDuty?'#ecfdf5':'#fffbeb'}">${esc(duty.json.summaryZh || '')}</div>
+    <div class="cards">
+      <div class="card"><div class="n">${d.person.identityStatus==='confirmed'?'已确认':'未确认'}</div><div class="l">身份（${d.person.id} / ${esc(d.person.name)} / ${esc(d.person.delegation)}）</div></div>
+      <div class="card"><div class="n ${d.presence.inside?'good':''}">${d.presence.inside ? esc(d.presence.zone) : '场外'}</div><div class="l">实际到场${d.presence.presumed?'（推定/争议中）':''}</div></div>
+      <div class="card"><div class="n">G${d.badge?.currentGeneration ?? '—'}</div><div class="l">当前证件代次</div></div>
+      <div class="card"><div class="n ${d.disputes.some(x=>x.status==='open')?'warn':'good'}">${d.disputes.filter(x=>x.status==='open').length}</div><div class="l">未决争议</div></div>
+    </div>
+    <h3>有效权限（许可，不是到场事实）</h3>
+    <table><thead><tr><th>区域</th><th>场次</th><th>许可依据/缺口</th><th>证件代次</th><th>入场判定</th></tr></thead><tbody>${accessRows}</tbody></table>
+    <h3>最近事件流水（原始记录）</h3>
+    <table><thead><tr><th>事件时间</th><th>闸机序号</th><th>类型</th><th>代次</th><th>状态</th><th>标记</th></tr></thead><tbody>${evRows}</tbody></table>`;
+}
+
+async function loadStaffing() {
+  const id=$('s-id').value.trim(); const at=$('s-at').value.trim();
+  const q = at?`?at=${encodeURIComponent(at)}`:'';
+  const { json:d } = await api(`/api/sessions/${encodeURIComponent(id)}/staffing${q}`);
+  if (d.error) { $('s-out').innerHTML=`<pre class="json">${esc(JSON.stringify(d,null,2))}</pre>`; return; }
+  const rows = d.duties.map(x=>`<tr>
+    <td>${x.role}</td><td>${x.zone}</td><td>${x.presentCount}/${x.minimum}</td>
+    <td>${x.met?'<span class="pill ok">达标</span>':'<span class="pill bad">不足</span>'}</td>
+    <td>${x.present.map(p=>p.person).join(', ')||'—'} ${x.disputedPresent.length?`<span class="pill warn">争议到岗 ${x.disputedPresent.join(',')}</span>`:''}</td>
+    <td>有效指派 ${x.activeCount} / 资格合格 ${x.qualifiedCount}</td></tr>`).join('');
+  $('s-out').innerHTML = `
+    <div class="summary">${esc(d.summaryZh)}</div>
+    <p>${d.releaseAllowed?'<span class="pill ok">可以放行下一场</span>':'<span class="pill bad">最低在岗不足，不能放行</span>'}
+       ${d.release?`<span class="pill info">已于 ${esc(d.release.releasedAt)} 放行（${esc(d.release.releasedBy)}）</span>`:''}</p>
+    <table><thead><tr><th>核心岗位</th><th>区域</th><th>在岗/最低</th><th>状态</th><th>确定到岗人</th><th>链条</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+async function releaseSession(){
+  const id=$('s-id').value.trim(); const at=$('s-at').value.trim();
+  const r = await api(`/api/sessions/${encodeURIComponent(id)}/release`,{body:{at: at||undefined}});
+  alert(r.status<300?'已放行':('放行被拒：'+(r.json.error||r.json.code)));
+  loadStaffing();
+}
+
+async function loadZone() {
+  const id=$('z-id').value.trim(); const at=$('z-at').value.trim(); const ss=$('z-session').value.trim();
+  const p = new URLSearchParams(); if(at)p.set('at',at); if(ss)p.set('session',ss);
+  const { json:d } = await api(`/api/zones/${encodeURIComponent(id)}/occupancy?${p}`);
+  if (d.error) { $('z-out').innerHTML=`<pre class="json">${esc(JSON.stringify(d,null,2))}</pre>`; return; }
+  const rows = d.people.map(x=>`<tr>
+    <td>${x.person} / ${esc(x.name)}</td><td>${esc(x.since)}</td><td>${x.gate}</td>
+    <td>${x.presumed?'<span class="pill warn">推定位置</span>':'<span class="pill ok">确定</span>'}</td>
+    <td>${x.currentPermissionValid===false?'<span class="pill bad">许可已失效</span>':'<span class="pill ok">许可有效</span>'}</td>
+    <td>${pills(x.reasons)}</td></tr>`).join('');
+  const leave = d.mustLeave.map(x=>`<li><b>${x.person} ${esc(x.name||'')}</b>：${x.reasons.map(r=>({capacity_full:'超员',badge_generation_invalid:'旧证无效',assignment_missing:'岗位已撤销/结束',training_missing:'培训失效',session_ended:'场次结束'}[r]||r)).join('、')}</li>`).join('');
+  $('z-out').innerHTML=`
+    <div class="summary">${esc(d.summaryZh)}</div>
+    <div class="cards">
+      <div class="card"><div class="n">${d.insideCount}</div><div class="l">实际在场人数</div></div>
+      <div class="card"><div class="n">${d.capacity}</div><div class="l">容量</div></div>
+      <div class="card"><div class="n good">${d.remaining}</div><div class="l">剩余额度</div></div>
+      <div class="card"><div class="n ${d.overCapacityBy?'bad':'good'}">${d.overCapacityBy}</div><div class="l">超员人数</div></div>
+    </div>
+    <div class="grid2">
+      <div><h3>场内人员（实际事实）</h3><table><thead><tr><th>人</th><th>入场</th><th>闸机</th><th>定位</th><th>当前许可</th><th>标记</th></tr></thead><tbody>${rows}</tbody></table></div>
+      <div><h3>建议离场 / 待处理</h3><ul>${leave||'<li class="muted">无</li>'}</ul>
+        <h3>位置争议 claim</h3><pre class="json">${esc(JSON.stringify(d.disputedClaims,null,2))}</pre></div>
+    </div>`;
+}
+
+async function loadGate() {
+  const id=$('g-id').value.trim(); const at=$('g-at').value.trim();
+  const q=at?`?at=${encodeURIComponent(at)}`:'';
+  const { json:d } = await api(`/api/gates/${encodeURIComponent(id)}/sync${q}`);
+  if (d.error) { $('g-out').innerHTML=`<pre class="json">${esc(JSON.stringify(d,null,2))}</pre>`; return; }
+  const s=(d.snapshots||[])[0];
+  $('g-out').innerHTML=`<div class="summary">${esc(d.summaryZh)}</div>
+    ${s?`<div class="cards">
+      <div class="card"><div class="n">${s.quota.granted}</div><div class="l">离线明确额度</div></div>
+      <div class="card"><div class="n">${s.quota.used}</div><div class="l">已用</div></div>
+      <div class="card"><div class="n good">${s.quota.remaining}</div><div class="l">剩余</div></div>
+      <div class="card"><div class="n ${s.covered?'good':'bad'}">${s.covered?'已覆盖':'有缺口'}</div><div class="l">撤销版本 ${s.revVersionAtSync}/${s.currentRevVersion}</div></div>
+      <div class="card"><div class="n ${s.windowActive?'warn':'good'}">${s.windowActive?'窗口内':'已关窗'}</div><div class="l">离线窗至 ${esc(s.offlineUntil)}</div></div>
+    </div>
+    <p>${s.mayStillHonorOldPermit?'<span class="pill warn">离线状态下仍可能按旧许可放行</span>':'<span class="pill ok">不存在旧许可暴露</span>'}
+       <span class="pill info">在线中央决策始终立即按最新撤销拒绝</span></p>`:'<p class="muted">该闸机还没有同步快照。</p>'}`;
+}
+async function syncGate(){
+  const id=$('g-id').value.trim(); const quota=$('g-quota').value.trim();
+  const body={}; if(quota) body.quota=Number(quota);
+  const r=await api(`/api/gates/${encodeURIComponent(id)}/sync`,{body});
+  alert(r.status<300?'同步快照已生成':('同步失败：'+r.json.error)); loadGate();
+}
+async function setMode(mode){
+  const id=$('g-id').value.trim();
+  await api(`/api/gates/${encodeURIComponent(id)}/mode`,{body:{mode}}); loadGate();
+}
+async function loadMatrix(){
+  const { json:d } = await api('/api/sync-coverage');
+  if (d.error) return;
+  $('g-matrix').innerHTML = d.revocations.map(r=>`<div class="summary">${esc(r.globalRevokedZh)}</div>
+    <table><thead><tr><th>撤销</th><th>人员/代次/区域</th><th>未覆盖闸机</th><th>离线暴露闸机/时限</th></tr></thead><tbody>
+    <tr><td>${r.revocation.id} v${r.revocation.revVersion} ${r.revocation.kind}</td>
+    <td>${r.revocation.person}${r.revocation.generation?(' G'+r.revocation.generation):''} ${r.revocation.zone||''} ${r.revocation.reason?('／'+esc(r.revocation.reason)):''}</td>
+    <td>${r.unSyncedGates.join(', ')||'无'}</td>
+    <td>${r.gates.filter(g=>g.mayStillHonor).map(g=>`${g.gate} 至 ${esc(g.exposureUntil)}`).join('；')||'无'}</td></tr>
+    </tbody></table>`).join('') || '<p class="muted">暂无撤销记录。</p>';
+}
+
+async function loadVerify(){
+  const ev = await api('/api/events?status=pending');
+  $('v-events').innerHTML = (ev.json||[]).length ? `<table><thead><tr><th>事件</th><th>人/闸机序号</th><th>时间/接收</th><th>原因</th><th>操作</th></tr></thead><tbody>`+
+    ev.json.map(e=>`<tr><td>${e.id}</td><td>${e.person}<br>${e.gate}#${e.sequence} ${e.localSerial?('/ '+esc(e.localSerial)):''}</td>
+      <td>${esc(e.at)}<br><span class="muted">${esc(e.receivedAt)}（偏差 ${Math.round(e.skewSeconds)}s）</span></td>
+      <td>${pills(e.reasons)}</td>
+      <td><button class="ok" onclick="verifyEvent('${e.id}','confirm')">核实通过</button>
+          <button class="danger" onclick="verifyEvent('${e.id}','reject')">驳回</button></td></tr>`).join('')+'</tbody></table>'
+    : '<p class="muted">没有待核实事件。</p>';
+  const dp = await api('/api/disputes');
+  const list=(dp.json||[]).filter(x=>x.status==='open');
+  $('v-disputes').innerHTML = list.length ? list.map(x=>`<div class="summary"><b>${x.key}</b> · ${x.kind}<br>
+      人员 ${x.person}；区域 ${x.zones.join(' ↔ ')}；事件 ${x.events.join(', ')}
+      <div class="row" style="margin:8px 0 0">
+        <label class="f">核实实际区域<input id="rz-${x.key}" value="${x.zones[0]}" size="10"></label>
+        <button class="ok" onclick="resolveDispute('${x.key}')">确认实际位置</button>
+      </div></div>`).join('') : '<p class="muted">没有未决争议。</p>';
+}
+async function verifyEvent(id, decision){
+  await api(`/api/events/${id}/verify`,{body:{decision}}); loadVerify();
+}
+async function resolveDispute(key){
+  const actualZone=$(`rz-${key}`).value.trim();
+  const r=await api(`/api/disputes/${encodeURIComponent(key)}/resolve`,{body:{decision:'actual_location',actualZone}});
+  if(r.status>=400) alert(r.json.error);
+  loadVerify();
+}
+
+function showOps(r){ $('ops-out').textContent = `HTTP ${r.status}\n` + JSON.stringify(r.json,null,2); }
+const v = id => $(id).value.trim();
+const timeOrUndef = id => { const x=v(id); return x || undefined; };
+
+async function opsDeclaration(){
+  const body = { category: v('o-decl-cat'), delegation: v('o-decl-delegation') || undefined };
+  if (v('o-decl-person')) body.personId = v('o-decl-person');
+  else body.person = { name: v('o-decl-name'), delegation: body.delegation };
+  showOps(await api('/api/declarations', { body }));
+}
+async function opsConfirmIdentity(){
+  showOps(await api(`/api/people/${encodeURIComponent(v('o-id-person'))}/confirm-identity`, { body: {} }));
+}
+async function opsReviewTraining(){
+  showOps(await api(`/api/training/${encodeURIComponent(v('o-train-id'))}/review`, { body: { decision: v('o-train-decision') } }));
+}
+async function opsAssignment(){
+  const created = await api('/api/assignments', { body: { person: v('o-asg-person'), dutyId: v('o-asg-duty'), role: v('o-asg-role') } });
+  if (created.status >= 400) return showOps(created);
+  const approved = await api(`/api/assignments/${created.json.id}/approve`, { body: {} });
+  $('ops-out').textContent = `指派：HTTP ${created.status}\n` + JSON.stringify(created.json,null,2) + `\n\n核准：HTTP ${approved.status}\n` + JSON.stringify(approved.json,null,2);
+}
+async function opsReplace(){
+  const duty = encodeURIComponent(v('o-rep-duty'));
+  showOps(await api(`/api/duties/${duty}/replace`, { body: { outgoing: v('o-rep-out'), incoming: v('o-rep-in'), at: timeOrUndef('o-rep-at') } }));
+}
+async function opsBadge(){
+  const action = v('o-badge-action');
+  showOps(await api(`/api/badges/${action}`, { body: { person: v('o-badge-person'), reason: v('o-badge-reason') || undefined } }));
+}
+async function opsEvent(){
+  const body = {
+    gate: v('o-ev-gate'), sequence: Number(v('o-ev-seq')), person: v('o-ev-person'),
+    badgeGeneration: Number(v('o-ev-gen')), event: v('o-ev-type'),
+    at: v('o-ev-at') || undefined, receivedAt: v('o-ev-recv') || undefined,
+    offline: v('o-ev-offline') === 'true',
+  };
+  showOps(await api('/api/events', { body }));
+}
+
+async function callApi(){
+  const method=$('a-method').value; const path=$('a-path').value.trim();
+  let body; try { body = method==='GET'?undefined:JSON.parse($('a-body').value||'{}'); }
+  catch(e){ $('a-out').textContent='JSON 解析失败：'+e.message; return; }
+  const r=await api(path,{method,body});
+  $('a-out').textContent=`HTTP ${r.status}\n`+JSON.stringify(r.json,null,2);
+}
+loadPerson();
+</script>
+</body>
+</html>
